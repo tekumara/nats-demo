@@ -6,7 +6,7 @@ service:
   merge:
     spec:
       type: LoadBalancer
-      
+
 config:
   cluster:
     enabled: true
@@ -22,3 +22,30 @@ podTemplate:
     kubernetes.io/hostname:
       maxSkew: 1
       whenUnsatisfiable: DoNotSchedule
+
+extraResources:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    namespace:
+      $tplYamlSpread: >
+        {{ include "nats.metadataNamespace" $ }}
+    name:
+      $tplYaml: >
+        {{ include "nats.fullname" $ | quote }}
+    labels:
+      $tplYaml: |
+        {{ include "nats.labels" $ }}
+  spec:
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name:
+                $tplYaml: >
+                  {{ .Values.headlessService.name | quote }}
+              port:
+                number: 8222
+          path: /
+          pathType: Prefix

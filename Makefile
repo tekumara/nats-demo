@@ -8,8 +8,7 @@ kubes: cluster nats
 
 ## create k3s cluster
 cluster:
-	k3d cluster create $(cluster) --registry-create $(cluster)-registry:0.0.0.0:5550 \
-		-p 4222:4222@loadbalancer -p 8222:8222@loadbalancer --wait
+	k3d cluster create $(cluster) -p 4222:4222@loadbalancer -p 8222:80@loadbalancer --wait
 	@k3d kubeconfig write $(cluster) > /dev/null
 	@echo "Probing until cluster is ready (~60 secs)..."
 	@while ! kubectl get crd ingressroutes.traefik.containo.us 2> /dev/null ; do sleep 10 && echo $$((i=i+10)); done

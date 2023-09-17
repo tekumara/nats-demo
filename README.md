@@ -21,6 +21,7 @@ make kubes
 Endpoints:
 
 - nats: tcp://localhost:4222
+- nats monitor: [http://localhost:8222](http://localhost:8222)
 
 ## References
 
