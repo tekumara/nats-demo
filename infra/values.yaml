@@ -1,0 +1,24 @@
+container:
+  image:
+    tag: 2.9.22-alpine
+
+service:
+  merge:
+    spec:
+      type: LoadBalancer
+      
+config:
+  cluster:
+    enabled: true
+    replicas: 3
+  jetstream:
+    enabled: true
+    fileStore:
+      pvc:
+        size: 1Gi
+
+podTemplate:
+  topologySpreadConstraints:
+    kubernetes.io/hostname:
+      maxSkew: 1
+      whenUnsatisfiable: DoNotSchedule
