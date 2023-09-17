@@ -23,6 +23,12 @@ Endpoints:
 - nats: tcp://localhost:4222
 - nats monitor: [http://localhost:8222](http://localhost:8222)
 
+Run
+
+- `make ping`
+- `make demo-js` python [jetstream demo](demo/js.py)
+- `make stream-ls` list streams
+
 ## References
 
 - [NATS Server Helm chart](https://artifacthub.io/packages/helm/nats/nats)

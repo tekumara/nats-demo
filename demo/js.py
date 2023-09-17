@@ -1,3 +1,5 @@
+# taken from https://github.com/nats-io/nats.py#jetstream
+
 import asyncio
 import nats
 from nats.errors import TimeoutError

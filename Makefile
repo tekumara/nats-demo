@@ -29,6 +29,10 @@ ping:
 pub:
 	kubectl exec -it deployment/nats-box -- nats pub test hi
 
+## demo js
+demo-js: $(venv)
+	$(venv)/bin/python -m demo.js
+
 ## list streams using cli
 stream-ls:
 	hash nats || brew install nats-io/nats-tools/nats
