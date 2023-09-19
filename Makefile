@@ -40,5 +40,5 @@ stream-ls:
 
 ## show kube logs
 logs:
-	kubectl logs -l "app.kubernetes.io/name=nats,app.kubernetes.io/instance=nats" -f --tail=-1
+	kubectl logs -l "app.kubernetes.io/name=nats,app.kubernetes.io/instance=nats" -c nats -f --tail=-1
 

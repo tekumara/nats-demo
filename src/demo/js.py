@@ -1,4 +1,4 @@
-# taken from https://github.com/nats-io/nats.py#jetstream
+# adapted from https://github.com/nats-io/nats.py#jetstream
 
 import asyncio
 import nats
@@ -11,7 +11,8 @@ async def main():
     js = nc.jetstream()
 
     # Persist messages on 'foo's subject.
-    await js.add_stream(name="sample-stream", subjects=["foo"])
+    # stream is replicated to the other 3 pods
+    await js.add_stream(name="sample-stream", subjects=["foo"], num_replicas=3)
 
     for i in range(0, 10):
         ack = await js.publish("foo", f"hello world: {i}".encode())
