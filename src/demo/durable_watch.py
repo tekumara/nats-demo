@@ -17,17 +17,24 @@ async def main():
     js = nc.jetstream()
 
     try:
-        kv = await js.delete_key_value(bucket="DWATCH")
+        kv = await js.delete_key_value(bucket="dwatch")
     except nats.js.errors.NotFoundError:
         pass
 
-    kv = await js.create_key_value(bucket="DWATCH", replicas=3)
+    kv = await js.create_key_value(bucket="dwatch", replicas=3)
     status = await kv.status()
     print(status)
+    print(kv._stream)
 
     await kv.create("new", b"hello world")
     await kv.put("t.name", b"alex")
     await kv.put("t.name", b"bob")
+
+    # can create even if it already exists, in which case status is returned
+    kv = await js.create_key_value(bucket="dwatch", replicas=3)
+    status = await kv.status()
+    print(status)
+
     await kv.put("t.age", b"20")
     await kv.put("t.age", b"21")
     await kv.put("t.a", b"a")
@@ -36,14 +43,17 @@ async def main():
 
     # Create pull based consumer
     psub = await js.pull_subscribe(
-        subject="$KV.DWATCH.>", durable="psub", stream="KV_DWATCH",
-        config = nats.js.api.ConsumerConfig(ack_wait=1)
+        subject="$KV.dwatch.>",
+        durable="psub",
+        stream="KV_dwatch",
+        # will redeliver if not acked within 1 second
+        config=nats.js.api.ConsumerConfig(ack_wait=1),
     )
 
     # Fetch and ack messages from consumer.
     (msg,) = await psub.fetch(1)
     print(msg)
-    assert msg.subject == "$KV.DWATCH.new"
+    assert msg.subject == "$KV.dwatch.new"
     assert msg.data == b"hello world"
     await msg.ack()
 
@@ -54,13 +64,14 @@ async def main():
 
     # interleave
     await kv.put("t.c", b"c")
+    await kv.put("t.d", b"d")
 
     # close and reconnect
     await nc.close()
     nc = await nats.connect(error_cb=error_handler)
     js = nc.jetstream()
     psub = await js.pull_subscribe(
-        subject="$KV.DWATCH.>", durable="psub", stream="KV_DWATCH"
+        subject="$KV.dwatch.>", durable="psub", stream="KV_dwatch"
     )
 
     (msg,) = await psub.fetch(1)
@@ -70,7 +81,7 @@ async def main():
 
     (msg,) = await psub.fetch(1)
     print(msg)
-    assert msg.subject == "$KV.DWATCH.t.a"
+    assert msg.subject == "$KV.dwatch.t.a"
     assert msg.headers and msg.headers["KV-Operation"] == "DEL"
     assert msg.data == b""
     await msg.ack()
@@ -91,15 +102,25 @@ async def main():
     # b is back
     (msg,) = await psub.fetch(1)
     print(msg)
-    assert msg.subject == "$KV.DWATCH.t.b"
+    assert msg.subject == "$KV.dwatch.t.b"
     assert msg.data == b"b"
     await msg.ack()
 
-    # After getting the None marker, subsequent watch attempts will be a timeout error.
+    # fetch batch bigger than stream contents
+
+    msgs = await psub.fetch(2)
+    print(msgs)
+    assert len(msgs) == 1
+    msg = msgs[0]
+    assert msg.subject == "$KV.dwatch.t.d"
+    assert msg.data == b"d"
+    await msg.ack()
+
+    # At the end of the stream, subsequent watch attempts will be a timeout error.
     try:
         (msg,) = await psub.fetch(1, timeout=0.5)
         raise Exception("did not timeout")
-    except nats.errors.TimeoutError as e:
+    except nats.errors.TimeoutError:
         pass
 
     await nc.close()
