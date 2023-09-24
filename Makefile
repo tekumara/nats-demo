@@ -42,3 +42,7 @@ demo-js: $(venv)
 logs:
 	kubectl logs -l "app.kubernetes.io/name=nats,app.kubernetes.io/instance=nats" -c nats -f --tail=-1
 
+## zsh completion
+zsh-comp:
+# TODO: determine location programmatically
+	curl -fsSL https://get-nats.io/zsh.complete.nats > /opt/homebrew/share/zsh/site-functions/_nats

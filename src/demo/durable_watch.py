@@ -30,11 +30,6 @@ async def main():
     await kv.put("t.name", b"alex")
     await kv.put("t.name", b"bob")
 
-    # can create even if it already exists, in which case status is returned
-    kv = await js.create_key_value(bucket="dwatch", replicas=3)
-    status = await kv.status()
-    print(status)
-
     await kv.put("t.age", b"20")
     await kv.put("t.age", b"21")
     await kv.put("t.a", b"a")
@@ -70,6 +65,7 @@ async def main():
     await nc.close()
     nc = await nats.connect(name="watcher-2", error_cb=error_handler)
     js = nc.jetstream()
+    # NB: config is only used when the consumer is first created
     psub = await js.pull_subscribe(
         subject="$KV.dwatch.>", durable="psub", stream="KV_dwatch"
     )
@@ -107,14 +103,19 @@ async def main():
     await msg.ack()
 
     # fetch batch bigger than stream contents
-
-    msgs = await psub.fetch(2)
+    # will wait to get up to 100 messages or timeout and return whatever
+    # it can find
+    print("fetch big batch")
+    msgs = await psub.fetch(100, timeout=0.5)
     print(msgs)
     assert len(msgs) == 1
     msg = msgs[0]
     assert msg.subject == "$KV.dwatch.t.d"
     assert msg.data == b"d"
     await msg.ack()
+
+    # TODO: two subs to same consumer
+
 
     # At the end of the stream, subsequent watch attempts will be a timeout error.
     try:

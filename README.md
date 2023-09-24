@@ -31,6 +31,11 @@ Run
 - `nats server report connections` list connections
 - `nats server ls --context=admin` list servers using system account (admin)
 - `nats server report jetstream --context=admin` jetstream summary report
+- `nats kv watch articles` tail bucket `dwatch`
+- `nats stream view KV_dwatch` view messages in the `KV_dwatch` stream
+- `nats stream get KV_dwatch 2` view message with sid 2 in `KV_dwatch` stream
+- `nats consumer rm KV_dwatch` delete consumer. Recreating it will start from the beginning of the stream.
+- `nats events -a` listen for advisories eg: delivery attempts exceeded
 
 ## Config
 
