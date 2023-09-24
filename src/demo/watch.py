@@ -13,7 +13,7 @@ async def main():
         print("Error:", e, type(e))
         errors.append(e)
 
-    nc = await nats.connect(error_cb=error_handler)
+    nc = await nats.connect(name="watch", error_cb=error_handler)
     js = nc.jetstream()
 
     try:

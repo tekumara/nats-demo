@@ -13,7 +13,7 @@ async def main():
         print("Error:", e, type(e))
         errors.append(e)
 
-    nc = await nats.connect(error_cb=error_handler)
+    nc = await nats.connect(name="watcher-1", error_cb=error_handler)
     js = nc.jetstream()
 
     try:
@@ -68,7 +68,7 @@ async def main():
 
     # close and reconnect
     await nc.close()
-    nc = await nats.connect(error_cb=error_handler)
+    nc = await nats.connect(name="watcher-2", error_cb=error_handler)
     js = nc.jetstream()
     psub = await js.pull_subscribe(
         subject="$KV.dwatch.>", durable="psub", stream="KV_dwatch"
