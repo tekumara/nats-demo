@@ -3,8 +3,13 @@ include *.mk
 cluster?=nats
 export KUBECONFIG=$(HOME)/.k3d/kubeconfig-$(cluster).yaml
 
-## create cluster and deploy nats
-kubes: cluster nats
+## install nats cli, create cluster, and deploy nats
+install: nats-cli cluster nats
+
+## install nats cli
+nats-cli:
+	hash nats || brew install nats-io/nats-tools/nats
+	nats context save admin --user=admin --password=admin
 
 ## create k3s cluster
 cluster:
@@ -32,11 +37,6 @@ pub:
 ## demo js
 demo-js: $(venv)
 	$(venv)/bin/python -m demo.js
-
-## list streams using cli
-stream-ls:
-	hash nats || brew install nats-io/nats-tools/nats
-	nats stream ls
 
 ## show kube logs
 logs:

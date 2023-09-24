@@ -16,6 +16,19 @@ config:
     fileStore:
       pvc:
         size: 1Gi
+  merge:
+    00$include: auth.conf
+
+configMap:
+  merge:
+    data:
+      auth.conf: |
+        accounts {
+            $SYS: {
+                users: [{user: admin, password: admin}]
+            },
+        }
+
 
 podTemplate:
   topologySpreadConstraints:
