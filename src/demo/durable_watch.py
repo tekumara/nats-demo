@@ -28,7 +28,6 @@ async def main():
     print(kv._stream)
 
     await kv.create("new", b"hello world")
-    await kv.put("t.name", b"alex")
 
     await kv.put("t.age", b"20")
     await kv.put("t.age", b"21")
@@ -44,7 +43,7 @@ async def main():
         durable="psub",
         stream="KV_dwatch",
         # will redeliver if not acked within 1 second
-        config=nats.js.api.ConsumerConfig(ack_wait=1,deliver_policy=nats.js.api.DeliverPolicy.ALL),
+        config=nats.js.api.ConsumerConfig(ack_wait=1),
     )
 
     # two subscriptions for the same consumer will interleave
@@ -57,11 +56,6 @@ async def main():
     print(msg)
     assert msg.subject == "$KV.dwatch.new"
     assert msg.data == b"hello world"
-    await msg.ack()
-
-    (msg,) = await psub2.fetch(1)
-    print(msg)
-    assert msg.data == b"alex"
     await msg.ack()
 
     # interleave
@@ -147,7 +141,6 @@ async def main():
     except nats.errors.TimeoutError:
         pass
 
-    await nc.close()
 
 
 if __name__ == "__main__":
