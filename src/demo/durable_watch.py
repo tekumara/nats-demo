@@ -47,6 +47,11 @@ async def main():
         config=nats.js.api.ConsumerConfig(ack_wait=1,deliver_policy=nats.js.api.DeliverPolicy.ALL),
     )
 
+    # two subscriptions for the same consumer will interleave
+    psub2 = await js.pull_subscribe(
+        subject="$KV.dwatch.>", durable="psub", stream="KV_dwatch"
+    )
+
     # Fetch and ack messages from consumer.
     (msg,) = await psub.fetch(1)
     print(msg)
@@ -54,7 +59,7 @@ async def main():
     assert msg.data == b"hello world"
     await msg.ack()
 
-    (msg,) = await psub.fetch(1)
+    (msg,) = await psub2.fetch(1)
     print(msg)
     assert msg.data == b"alex"
     await msg.ack()
@@ -127,8 +132,6 @@ async def main():
     assert msg.subject == "$KV.dwatch.t.d"
     assert msg.data == b"d"
     await msg.ack()
-
-    # TODO: two subs to same consumer
 
     # can create even if it already exists, in which case status is returned
     # must match config of existing kv, otherwise we get the error:
