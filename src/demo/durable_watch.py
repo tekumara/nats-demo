@@ -21,17 +21,19 @@ async def main():
     except nats.js.errors.NotFoundError:
         pass
 
-    kv = await js.create_key_value(bucket="dwatch", replicas=3)
+    # keep max two versions
+    kv = await js.create_key_value(bucket="dwatch", replicas=3, history=2)
     status = await kv.status()
     print(status)
     print(kv._stream)
 
     await kv.create("new", b"hello world")
     await kv.put("t.name", b"alex")
-    await kv.put("t.name", b"bob")
 
     await kv.put("t.age", b"20")
     await kv.put("t.age", b"21")
+    await kv.put("t.age", b"22")
+
     await kv.put("t.a", b"a")
     await kv.delete("t.a")
     await kv.put("t.b", b"b")
@@ -42,7 +44,7 @@ async def main():
         durable="psub",
         stream="KV_dwatch",
         # will redeliver if not acked within 1 second
-        config=nats.js.api.ConsumerConfig(ack_wait=1),
+        config=nats.js.api.ConsumerConfig(ack_wait=1,deliver_policy=nats.js.api.DeliverPolicy.ALL),
     )
 
     # Fetch and ack messages from consumer.
@@ -54,7 +56,7 @@ async def main():
 
     (msg,) = await psub.fetch(1)
     print(msg)
-    assert msg.data == b"bob"
+    assert msg.data == b"alex"
     await msg.ack()
 
     # interleave
@@ -70,15 +72,27 @@ async def main():
         subject="$KV.dwatch.>", durable="psub", stream="KV_dwatch"
     )
 
+    # only last two kept
     (msg,) = await psub.fetch(1)
     print(msg)
-    assert msg.data == b"21"
+    assert msg.data == b"21", msg.data
+    await msg.ack()
+
+    (msg,) = await psub.fetch(1)
+    print(msg)
+    assert msg.data == b"22", msg.data
     await msg.ack()
 
     (msg,) = await psub.fetch(1)
     print(msg)
     assert msg.subject == "$KV.dwatch.t.a"
-    assert msg.headers and msg.headers["KV-Operation"] == "DEL"
+    assert msg.data == b"a"
+    await msg.ack()
+
+    (msg,) = await psub.fetch(1)
+    print(msg)
+    assert msg.subject == "$KV.dwatch.t.a"
+    assert msg.headers and msg.headers["KV-Operation"] == "DEL", msg.headers
     assert msg.data == b""
     await msg.ack()
 
@@ -116,6 +130,12 @@ async def main():
 
     # TODO: two subs to same consumer
 
+    # can create even if it already exists, in which case status is returned
+    # must match config of existing kv, otherwise we get the error:
+    # stream name already in use with a different configuration
+    kv = await js.create_key_value(bucket="dwatch", replicas=3, history=2)
+    status = await kv.status()
+    print(status)
 
     # At the end of the stream, subsequent watch attempts will be a timeout error.
     try:
