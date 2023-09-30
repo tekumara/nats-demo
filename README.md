@@ -45,6 +45,7 @@ NB: /etc/nats/nats-server.conf is the [default example config](https://github.co
 
 ## References
 
+- [How NATS stores data on disk](docs/filestore.md)
 - [NATS Server Helm chart](https://artifacthub.io/packages/helm/nats/nats)
 - [NATS Protocol Demo](https://docs.nats.io/reference/reference-protocols/nats-protocol-demo)
 - [NATS cli](https://docs.nats.io/using-nats/nats-tools/nats_cli)
