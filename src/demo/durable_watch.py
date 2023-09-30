@@ -54,6 +54,8 @@ async def main():
     except nats.js.errors.KeyNotFoundError:
         pass
 
+    # starts a non-durable consumer that reads through the stream to find
+    # all messages for the subject
     history = await kv.history("t.age")
     assert len(history) == 2
     print(history)
@@ -83,6 +85,10 @@ async def main():
     print(msg)
     assert msg.subject == "$KV.dwatch.new"
     assert msg.data == b"hello world"
+    print(msg.metadata)
+    assert msg.metadata.sequence.consumer == 1
+    assert msg.metadata.sequence.stream == 1
+    assert msg.metadata.timestamp
     await msg.ack()
 
     # interleave
@@ -102,6 +108,10 @@ async def main():
     (msg,) = await psub.fetch(1)
     print(msg)
     assert msg.data == b"21", msg.data
+    print(msg.metadata)
+    # because of delete, consumer sequence is 2
+    assert msg.metadata.sequence.consumer == 2
+    assert msg.metadata.sequence.stream == 3
     await msg.ack()
 
     (msg,) = await psub.fetch(1)
@@ -120,6 +130,7 @@ async def main():
     (msg,) = await psub.fetch(1)
     print(msg)
     assert msg.data == b"b"
+    assert msg.metadata.sequence.consumer == 5
     # don't ack, will be redelivered after ack_wait
 
     # in meantime we can still get the next messages
@@ -140,6 +151,9 @@ async def main():
     print(msg)
     assert msg.subject == "$KV.dwatch.t.b"
     assert msg.data == b"b"
+    # consumer sequence is now 8 because of the redelivery
+    assert msg.metadata.sequence.consumer == 8
+    assert msg.metadata.sequence.stream == 6
     await msg.ack()
 
     # fetch batch bigger than stream contents
