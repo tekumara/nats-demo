@@ -27,15 +27,42 @@ async def main():
     print(status)
     print(kv._stream)
 
-    await kv.create("new", b"hello world")
+    assert await kv.create("new", b"hello world") == 1
 
-    await kv.put("t.age", b"20")
-    await kv.put("t.age", b"21")
-    await kv.put("t.age", b"22")
+    assert await kv.put("t.age", b"20") == 2
+    assert await kv.put("t.age", b"21") == 3
 
-    await kv.put("t.a", b"a")
+    assert await kv.put("t.a", b"a") == 4
+    # delete stores a tombstone at seq 5
     await kv.delete("t.a")
-    await kv.put("t.b", b"b")
+    assert await kv.put("t.b", b"b") == 6
+
+    assert await kv.put("t.age", b"22") == 7
+
+    # get latest
+    entry = await kv.get("t.age")
+    assert entry.value == b"22"
+
+    # get prior version based on revision
+    entry = await kv.get("t.age", 3)
+    assert entry.value == b"21"
+
+    # deleted
+    try:
+        entry = await kv.get("t.age", 2)
+        raise Exception("not deleted")
+    except nats.js.errors.KeyNotFoundError:
+        pass
+
+    history = await kv.history("t.age")
+    assert len(history) == 2
+    print(history)
+    assert history[0].value == b"21"
+    # delta is how far from the end of history we are
+    assert history[0].delta == 1
+    assert history[1].value == b"22"
+    assert history[1].delta == 0
+
 
     # Create pull based consumer
     psub = await js.pull_subscribe(
@@ -71,15 +98,10 @@ async def main():
         subject="$KV.dwatch.>", durable="psub", stream="KV_dwatch"
     )
 
-    # only last two kept
+    # 20 is dropped, and only last two kept
     (msg,) = await psub.fetch(1)
     print(msg)
     assert msg.data == b"21", msg.data
-    await msg.ack()
-
-    (msg,) = await psub.fetch(1)
-    print(msg)
-    assert msg.data == b"22", msg.data
     await msg.ack()
 
     (msg,) = await psub.fetch(1)
@@ -100,7 +122,12 @@ async def main():
     assert msg.data == b"b"
     # don't ack, will be redelivered after ack_wait
 
-    # in meantime we can still get c next
+    # in meantime we can still get the next messages
+    (msg,) = await psub.fetch(1)
+    print(msg)
+    assert msg.data == b"22", msg.data
+    await msg.ack()
+
     (msg,) = await psub.fetch(1)
     print(msg)
     assert msg.data == b"c"
