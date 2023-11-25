@@ -22,9 +22,7 @@ cluster:
 
 ## deploy nats to kubes
 nats:
-	helm repo add nats https://nats-io.github.io/k8s/helm/charts/
-	helm repo update nats
-	helm upgrade --install nats nats/nats --version=1.0.3 --values infra/values.yaml --wait --debug > /dev/null
+	helm upgrade --install --repo https://nats-io.github.io/k8s/helm/charts/ nats nats --version=1.0.3 --values infra/values.yaml --wait --debug > /dev/null
 
 ## ping nats
 ping:
